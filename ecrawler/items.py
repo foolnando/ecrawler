@@ -9,6 +9,7 @@ import scrapy
 
 
 class EcrawlerItem(scrapy.Item):
+    scoreUrl = scrapy.Field()
     # define the fields for your item here like:
     # name = scrapy.Field()
     pass

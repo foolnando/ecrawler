@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 import scrapy
+from scrapy import signals
 from scrapy.crawler import CrawlerProcess
 import scipy.cluster.hierarchy as sch
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering 
-from scrapy.selector import Selector
+from ecrawler.items import EcrawlerItem
 
 class ExcommerceSpider(scrapy.Spider):
     name = 'excommerce'
-    allowed_domains = ['nerdstickers.com.br']
-    start_urls = ['http://www.nerdstickers.com.br/']
-
-
+    allowed_domains = ['chicorei.com']
+    start_urls = ['https://chicorei.com/']
+    scoreUrl = []
+    url = []
+    keywords = ['entrar','cart','carrinho','login','logar',
+    'faq','sac','faleconosco','fale-conosco','remacoes',
+    'checkout','logout', 'checkin']
     def createMatrix(self,A,B):
         '''cria e preenche uma matriz de i linhas e j colunas'''
         matrix = []
@@ -134,59 +138,30 @@ class ExcommerceSpider(scrapy.Spider):
         retorno.append(len(self.matches(AlignmentA,AlignmentB)))
         return [self.finalScore(AlignmentA,AlignmentB),len(self.matches(AlignmentA,AlignmentB))]
 
+    @classmethod
+    def from_crawler(cls, crawler, *args, **kwargs):
+        spider = super(ExcommerceSpider, cls).from_crawler(crawler, *args, **kwargs)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
+        return spider
+
+
+    def spider_closed(self,spider):
+        if not self.scoreUrl:
+            print("link has not been given a value")
+        print('oi')
+        self.parsed()
+        #spider.logger.info('Spider closed: %s', spider.name)
 
     def parse(self, response):
-        comp = response.url
-        scoreUrl = []
+        comp = 'https://chicorei.com/'
+        self.scoreUrl.append(response.url)
         links = response.xpath('//@href').extract()
         for link in links:
-            score = self.align(comp,link)
-            scoreUrl.append(score)
-        '''    
-        dendrogram = sch.dendrogram(sch.linkage(scoreUrl, method  = "ward"))
-        plt.title('Dendrogram')
-        plt.xlabel('Customers')
-        plt.ylabel('Euclidean distances')
-        plt.show()'''
-        
-
-        hc = AgglomerativeClustering(n_clusters = 4, affinity = 'euclidean', linkage ='ward')
-        y_hc=hc.fit_predict(scoreUrl)
-        y = np.array(scoreUrl)
-        
-        grtst=0
-        indxGrts=0
-        for i in range(0,4):
-            y0 = y[y_hc==i, 0], y[y_hc==i, 1]
-            if(len(y0[0])>grtst):
-                indxGrts=i
-                grtst = len(y0[0])
-                
-        print(grtst, indxGrts)
-        compx = y[y_hc==indxGrts, 0]
-        compy = y[y_hc==indxGrts, 1]
-        #print(compx,compy)
-        #plt.scatter(y[y_hc==0, 0], y[y_hc==0, 1], s=100, c='red', label ='Cluster 1')
-        #plt.scatter(y[y_hc==1, 0], y[y_hc==1, 1], s=100, c='blue', label ='Cluster 2')
-        #plt.scatter(y[y_hc==2, 0], y[y_hc==2, 1], s=100, c='green', label ='Cluster 3')
-        #plt.scatter(y[y_hc==3, 0], y[y_hc==3, 1], s=100, c='cyan', label ='Cluster 4')
-        #plt.scatter(y[y_hc==4, 0], y[y_hc==4, 1], s=100, c='magenta', label ='Cluster 5')
-        #plt.title("Clusters de Páginas (Hierarchical Clustering Model)")
-        #plt.xlabel("Score do alinhamento")
-        #plt.ylabel("minimo radical comum")
-        #plt.show()
-        #plt.scatter(y[y_hc==3, 0], y[y_hc==3, 1], s=100, c='cyan', label ='Cluster 4')
-        #plt.scatter(y[y_hc==4, 0], y[y_hc==4, 1], s=100, c='magenta', label ='Cluster 5')
-
-        for link in links:
-            score = self.align(comp,link)
-            for i in range(grtst):
-                if(score[0]==compx[i] and score[1]==compy[i]):
-                    yield{'link': link, 'score': score}
-            yield scrapy.Request(response.urljoin(link), callback=self.parse)
-            
-        
-        
-        '''refazer a busca e entao retornar pelo filtro que foi tirado na moda'''
-
+            anchor_text = response.xpath('./text()').extract()
+            print(anchor_text)
+            #if(response.meta['depth'] < 4):
+                #yie3ld scrapy.Request(response.urljoin(link), callback=self.parse)
     
+    def parsed(self):
+        item = EcrawlerItem()
+        print('tchau')
