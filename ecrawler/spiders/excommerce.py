@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.cluster import AgglomerativeClustering 
 from ecrawler.items import EcrawlerItem
+import re
 
 class ExcommerceSpider(scrapy.Spider):
     name = 'excommerce'
@@ -17,7 +18,8 @@ class ExcommerceSpider(scrapy.Spider):
     url = []
     keywords = ['entrar','cart','carrinho','login','logar',
     'faq','sac','faleconosco','fale-conosco','remacoes',
-    'checkout','logout', 'checkin']
+    'checkout','logout', 'checkin', 'minha-conta', 'conta', 
+    'account']
     def createMatrix(self,A,B):
         '''cria e preenche uma matriz de i linhas e j colunas'''
         matrix = []
@@ -148,20 +150,43 @@ class ExcommerceSpider(scrapy.Spider):
     def spider_closed(self,spider):
         if not self.scoreUrl:
             print("link has not been given a value")
+        hc = AgglomerativeClustering(n_clusters = 5, affinity = 'euclidean', linkage ='ward')
+        y_hc=hc.fit_predict(self.scoreUrl)
+        y = np.array(self.scoreUrl)
+        plt.scatter(y[y_hc==0, 0], y[y_hc==0, 1], s=100, c='red', label ='Cluster 1')
+        plt.scatter(y[y_hc==1, 0], y[y_hc==1, 1], s=100, c='blue', label ='Cluster 2')
+        plt.scatter(y[y_hc==2, 0], y[y_hc==2, 1], s=100, c='green', label ='Cluster 3')
+        plt.scatter(y[y_hc==3, 0], y[y_hc==3, 1], s=100, c='cyan', label ='Cluster 4')
+        plt.scatter(y[y_hc==4, 0], y[y_hc==4, 1], s=100, c='magenta', label ='Cluster 5')
+        plt.title('Clusters of Customers (Hierarchical Clustering Model)')
+        plt.xlabel('Score do alinhamento')
+        plt.ylabel('minimo radical comum')
+        plt.show()
+        print('path', self.url[0], 'score', self.scoreUrl[0])
         print('oi')
         self.parsed()
         #spider.logger.info('Spider closed: %s', spider.name)
 
     def parse(self, response):
-        comp = 'https://chicorei.com/'
-        self.scoreUrl.append(response.url)
+        noExcepted = []
+        entryUrl = 'https://chicorei.com/'
+        # self.url.append(response.url)
+        # score = self.align(entryUrl,response.url)
+        # self.scoreUrl.append(score)
         links = response.xpath('//@href').extract()
         for link in links:
-            anchor_text = response.xpath('./text()').extract()
-            print(anchor_text)
+            for word in range(0, len(self.keywords)):
+                noExcepted = re.findall(self.keywords[word], link)
+                if(len(noExcepted)>0):
+                    break
+            if(len(noExcepted)==0):
+                self.url.append(response.url)
+                score = self.align(entryUrl,response.url)
+                self.scoreUrl.append(score)
             #if(response.meta['depth'] < 4):
                 #yie3ld scrapy.Request(response.urljoin(link), callback=self.parse)
     
     def parsed(self):
         item = EcrawlerItem()
         print('tchau')
+        
