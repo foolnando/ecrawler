@@ -158,11 +158,12 @@ class ExcommerceSpider(scrapy.Spider):
         plt.scatter(y[y_hc==2, 0], y[y_hc==2, 1], s=100, c='green', label ='Cluster 3')
         plt.scatter(y[y_hc==3, 0], y[y_hc==3, 1], s=100, c='cyan', label ='Cluster 4')
         plt.scatter(y[y_hc==4, 0], y[y_hc==4, 1], s=100, c='magenta', label ='Cluster 5')
-        plt.title('Clusters of Customers (Hierarchical Clustering Model)')
+        plt.title('Clusters of Url Score of a site (Hierarchical Clustering Model)')
         plt.xlabel('Score do alinhamento')
         plt.ylabel('minimo radical comum')
         plt.show()
-        print('path', self.url[0], 'score', self.scoreUrl[0])
+        for g in range(0, len(self.scoreUrl)):
+            print('path', self.url[g], 'score', self.scoreUrl[g])
         print('oi')
         self.parsed()
         #spider.logger.info('Spider closed: %s', spider.name)
@@ -170,9 +171,9 @@ class ExcommerceSpider(scrapy.Spider):
     def parse(self, response):
         noExcepted = []
         entryUrl = 'https://chicorei.com/'
-        # self.url.append(response.url)
-        # score = self.align(entryUrl,response.url)
-        # self.scoreUrl.append(score)
+        self.url.append(response.url)
+        score = self.align(entryUrl,response.url)
+        self.scoreUrl.append(score)
         links = response.xpath('//@href').extract()
         for link in links:
             for word in range(0, len(self.keywords)):
@@ -180,9 +181,10 @@ class ExcommerceSpider(scrapy.Spider):
                 if(len(noExcepted)>0):
                     break
             if(len(noExcepted)==0):
-                self.url.append(response.url)
-                score = self.align(entryUrl,response.url)
-                self.scoreUrl.append(score)
+                # self.url.append(link)
+                # score = self.align(entryUrl,link)
+                # self.scoreUrl.append(score)
+                yield scrapy.Request(response.urljoin(link), callback=self.parse)
             #if(response.meta['depth'] < 4):
                 #yie3ld scrapy.Request(response.urljoin(link), callback=self.parse)
     
