@@ -12,14 +12,14 @@ import re
 
 class ExcommerceSpider(scrapy.Spider):
     name = 'excommerce'
-    allowed_domains = ['chicorei.com']
-    start_urls = ['https://chicorei.com/']
+    allowed_domains = ['nerdstickers.com.br']
+    start_urls = ['https://www.nerdstickers.com.br/']
     scoreUrl = []
     url = []
     keywords = ['entrar','cart','carrinho','login','logar',
     'faq','sac','faleconosco','fale-conosco','remacoes',
     'checkout','logout', 'checkin', 'minha-conta', 'conta', 
-    'account']
+    'account', 'External']
     def createMatrix(self,A,B):
         '''cria e preenche uma matriz de i linhas e j colunas'''
         matrix = []
@@ -148,6 +148,7 @@ class ExcommerceSpider(scrapy.Spider):
 
 
     def spider_closed(self,spider):
+        comp = 'https://www.nerdstickers.com.br/'
         if not self.scoreUrl:
             print("link has not been given a value")
         hc = AgglomerativeClustering(n_clusters = 5, affinity = 'euclidean', linkage ='ward')
@@ -162,15 +163,34 @@ class ExcommerceSpider(scrapy.Spider):
         plt.xlabel('Score do alinhamento')
         plt.ylabel('minimo radical comum')
         plt.show()
+
+        grtst=0
+        indxGrts=0
+        for i in range(0,4):
+            y0 = y[y_hc==i, 0], y[y_hc==i, 1]
+            if(len(y0[0])>grtst):
+                indxGrts=i
+                grtst = len(y0[0])
+                
+        print(grtst, indxGrts)
+        print(y[y_hc==indxGrts, 0], y[y_hc==indxGrts, 1])
+        
+        compx = y[y_hc==indxGrts, 0]
+        compy = y[y_hc==indxGrts, 1]
+
         for g in range(0, len(self.scoreUrl)):
-            print('path', self.url[g], 'score', self.scoreUrl[g])
+            score = self.align(comp,self.url[g])
+            for i in range(grtst):
+                if(score[0]==compx[i] and score[1]==compy[i]):
+                    print('path', self.url[g], 'score', self.scoreUrl[g])
+        
         print('oi')
         self.parsed()
         #spider.logger.info('Spider closed: %s', spider.name)
 
     def parse(self, response):
         noExcepted = []
-        entryUrl = 'https://chicorei.com/'
+        entryUrl = 'https://www.nerdstickers.com.br/'
         self.url.append(response.url)
         score = self.align(entryUrl,response.url)
         self.scoreUrl.append(score)
